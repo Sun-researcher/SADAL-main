@@ -51,11 +51,11 @@ class PatchEmbed(nn.Module):
         patch_size = (patch_size, patch_size)
         self.img_size = img_size
         self.patch_size = patch_size
-        self.grid_size = (img_size[0] // patch_size[0], img_size[1] // patch_size[1]) #patch大小
+        self.grid_size = (img_size[0] // patch_size[0], img_size[1] // patch_size[1]) 
         self.num_patches = self.grid_size[0] * self.grid_size[1] #patch num
 
-        self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=patch_size, stride=patch_size) #使用卷积生成一维数组
-        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity() #归一化层
+        self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=patch_size, stride=patch_size) 
+        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity() 
 
     def forward(self, x):
         B, C, H, W = x.shape
@@ -66,22 +66,22 @@ class PatchEmbed(nn.Module):
         # transpose: [B, C, HW] -> [B, HW, C]
         x = self.proj(x).flatten(2).transpose(1, 2)
         x = self.norm(x)
-        return x #输出形状为（（14*14）*768）
+        return x 
 
 
-class Attention(nn.Module): #实现注意力
+class Attention(nn.Module): 
     def __init__(self,
-                 dim,   # 输入token的dim
+                 dim,   
                  num_heads=8,
-                 qkv_bias=False, # 是否使用可学习参数的bias
+                 qkv_bias=False, 
                  qk_scale=None,
                  attn_drop_ratio=0.,
                  proj_drop_ratio=0.):
         super(Attention, self).__init__()
         self.num_heads = num_heads
-        head_dim = dim // num_heads #根据num_head进行分组
+        head_dim = dim // num_heads 
         self.scale = qk_scale or head_dim ** -0.5
-        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) #使用一个全连接层得到q,k,v
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias) 
         self.attn_drop = nn.Dropout(attn_drop_ratio)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop_ratio)
@@ -99,7 +99,7 @@ class Attention(nn.Module): #实现注意力
 
         # transpose: -> [batch_size, num_heads, embed_dim_per_head, num_patches + 1]
         # @: multiply -> [batch_size, num_heads, num_patches + 1, num_patches + 1]
-        attn = (q @ k.transpose(-2, -1)) * self.scale #每个heads的q，k,v相乘
+        attn = (q @ k.transpose(-2, -1)) * self.scale 
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
@@ -167,7 +167,7 @@ class VisionTransformer(nn.Module):
                  embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0, qkv_bias=True,
                  qk_scale=None, representation_size=None, distilled=False, drop_ratio=0.,
                  attn_drop_ratio=0., drop_path_ratio=0., embed_layer=PatchEmbed, norm_layer=None,
-                 act_layer=None,ssrt=False): #embed_layer=PatchEmbed默认为PatchEmbed层结构
+                 act_layer=None,ssrt=False): 
         """
         Args:
             img_size (int, tuple): input image size
@@ -245,7 +245,7 @@ class VisionTransformer(nn.Module):
         B = x.shape[0]
 
         if self.training and len(self.sr_layers) > 0:
-            perturb_layer = random.choice(self.sr_layers)  # 扰动层
+            perturb_layer = random.choice(self.sr_layers)  
         else:
             perturb_layer = None
 
@@ -268,9 +268,8 @@ class VisionTransformer(nn.Module):
         # y = self.blocks(y)
         for layer, blk in enumerate(self.blocks):
             if self.training and self.ssrt:
-                if layer == perturb_layer: #不进行训练
+                if layer == perturb_layer: 
                     idx = torch.flip(torch.arange(B // 2, B), dims=[0])
-                    # idx = torch.arange(0, B // 2)
                     ym = y[B // 2:] + (y[idx]-y[B // 2:]).detach() * self.sr_alpha_adap
                     y = torch.cat((y, ym))
                 y = blk(y)
@@ -450,7 +449,7 @@ def vit_huge_patch14_224_in21k(num_classes: int = 21843, has_logits: bool = True
     return model
 
 
-def calc_coeff(iter_num, high=1.0, low=0.0, alpha=10.0, max_iter=10000.0): #calc_coeff 用于计算一个系数，这个系数通常用于控制领域适应过程中的权重
+def calc_coeff(iter_num, high=1.0, low=0.0, alpha=10.0, max_iter=10000.0): 
     return float(2.0 * (high - low) / (1.0 + np.exp(-alpha*iter_num / max_iter)) - (high - low) + low)
 
 def init_weights(m):
@@ -465,7 +464,7 @@ def init_weights(m):
         nn.init.xavier_normal_(m.weight)
         nn.init.zeros_(m.bias)
 
-class projection_network(nn.Module): #定义投影层
+class projection_network(nn.Module):
     def __init__(self, in_feature, hidden_size=128):
         super(projection_network, self).__init__()
         self.pro_layer1 = nn.Linear(in_feature, in_feature)
@@ -476,18 +475,18 @@ class projection_network(nn.Module): #定义投影层
         x=self.pro_layer1(x)
         x=self.relu1(x)
         x=self.dropout1(x)
-        x=self.pro_layer2(x) #原文章在第二层之后没有激活函数
+        x=self.pro_layer2(x) 
         return x
-    def get_parameters(self): #参数初始化定义
+    def get_parameters(self): 
         return [{"params":self.parameters(), "lr_mult":10, 'decay_mult':2}]
 
 def grl_hook(coeff):
     def fun1(grad):
-        return -coeff*grad.clone() # 此处的coeff为负
+        return -coeff*grad.clone() 
     return fun1
 
 
-class AdversarialNetwork(nn.Module): #对抗辨别器
+class AdversarialNetwork(nn.Module): 
     def __init__(self, in_feature, hidden_size):
         super(AdversarialNetwork, self).__init__()
         self.ad_layer1 = nn.Linear(in_feature, hidden_size)
@@ -510,9 +509,8 @@ class AdversarialNetwork(nn.Module): #对抗辨别器
             self.iter_num += 1
         coeff = calc_coeff(self.iter_num, self.high, self.low, self.alpha, self.max_iter)
         x = x * 1.0
-        if self.training and x.requires_grad: #涉及到使用GRL来实现域自适应
-            x.register_hook(grl_hook(coeff)) #当进行反向传播时，梯度反转钩子会捕获梯度，并将其乘以 -coeff。
-            # 这样做的目的是使特征对领域不可区分，从而帮助模型在不同领域间更好地泛化。
+        if self.training and x.requires_grad: 
+            x.register_hook(grl_hook(coeff)) 
         x = self.ad_layer1(x)
         x = self.relu1(x)
         x = self.dropout1(x)
