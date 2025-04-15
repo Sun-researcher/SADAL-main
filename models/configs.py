@@ -38,7 +38,7 @@ def get_s16_config():
     config.transformer.mlp_dim = 1536
     config.transformer.num_heads = 6
     config.transformer.num_layers = 12
-    config.transformer.attention_dropout_rate = 0.0 #屏蔽注意力层常
+    config.transformer.attention_dropout_rate = 0.0 
     config.transformer.dropout_rate = 0.1
     config.classifier = 'token'
     config.representation_size = None
@@ -50,10 +50,9 @@ def get_b16_config():
     config.hidden_size = 768
     config.transformer = ml_collections.ConfigDict()
     config.transformer.mlp_dim = 3072
-    config.transformer.num_heads = 12 #每个注意力进行域分类
+    config.transformer.num_heads = 12 
     config.transformer.num_layers = 12
-    config.transformer.attention_dropout_rate = 0.0 #不适用dropout,如果为1.0时表示会丢弃全连接层，
-    #一般dropout设置在0.1到0.5之间
+    config.transformer.attention_dropout_rate = 0.0 
     config.transformer.dropout_rate = 0.1
     config.classifier = 'token'
     config.representation_size = None
